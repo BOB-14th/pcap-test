@@ -3,7 +3,6 @@
 #include <stdio.h>
 #include<netinet/in.h>
 #include<stdint.h>
-#include<stddef.h> /// ?????????? 이거 뭐지
 #define ETHER_ADDR_LEN 6
 #define LIBNET_LIL_ENDIAN true
 
@@ -91,19 +90,26 @@ void Packet_parsing(const u_char* packet, u_int32_t len){
 	struct libnet_ethernet_hdr *ethernet;
 	struct libnet_ipv4_hdr *ip;
 	struct libnet_tcp_hdr *tcp;
-        u_char *payload;
-        int data_idx;
+  u_char *payload;
+  int data_idx;
 
 	ethernet = (struct libnet_ethernet_hdr *) packet;
-	ip = (struct libnet_ipv4_hdr *)(packet + sizeof(struct libnet_ethernet_hdr));
-	tcp = (struct libnet_tcp_hdr *)(packet + sizeof(struct libnet_ethernet_hdr) + (ip->ip_hl*4));
-        payload = (u_char *)(packet + sizeof(struct libnet_ethernet_hdr) + (ip->ip_hl*4) + (tcp->th_off * 4));
-        data_idx = len - (sizeof(struct libnet_ethernet_hdr) + (ip->ip_hl*4) + (tcp -> th_off * 4));
-        if(data_idx > 20) data_idx=20;
+  if (ethernet->ether_type != htons(0x0800)) {
+    return;
+  }
 
-        if(ip->ip_p!=6){
-          return;
-        }
+	ip = (struct libnet_ipv4_hdr *)(packet + sizeof(struct libnet_ethernet_hdr));
+  if(ip->ip_p!=0x06){
+    return;
+  }
+  
+	tcp = (struct libnet_tcp_hdr *)(packet + sizeof(struct libnet_ethernet_hdr) + (ip->ip_hl*4));
+  payload = (u_char *)(packet + sizeof(struct libnet_ethernet_hdr) + (ip->ip_hl*4) + (tcp->th_off * 4));
+  data_idx = len - (sizeof(struct libnet_ethernet_hdr) + (ip->ip_hl*4) + (tcp -> th_off * 4));
+  if(data_idx > 20) data_idx=20;
+
+  
+  
 	
 	printf("----------------\n");
 	printf("1. eth header\n");
@@ -200,7 +206,7 @@ int main(int argc, char* argv[]) {
 			break;
 		}
 		//printf("%u bytes captured\n", header->caplen);
-                Packet_parsing(packet,header->caplen);
+    Packet_parsing(packet,header->caplen);
 	}
 	pcap_close(pcap);
 }
